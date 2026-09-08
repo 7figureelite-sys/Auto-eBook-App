@@ -40,8 +40,6 @@ if generate_btn:
     else:
         try:
             genai.configure(api_key=api_key)
-            
-            # Google द्वारा अनिवार्य किया गया नया मॉडल
             model = genai.GenerativeModel('gemini-3.6-flash')
 
             if not os.path.exists("temp_images"):
@@ -51,7 +49,7 @@ if generate_btn:
             pdf.add_page()
             pdf.set_auto_page_break(auto=True, margin=15)
 
-            with st.status("🔍 AI काम कर रहा है (Model: gemini-3.6-flash)...", expanded=True) as status:
+            with st.status("🔍 AI काम कर रहा है...", expanded=True) as status:
                 
                 st.write("📊 ग्लोबल मार्केट रिसर्च और प्राइसिंग एनालाइज़ हो रही है...")
                 research_prompt = f"Act as a global market researcher. Topic: {topic}. Give me: 1. A viral, click-worthy Title. 2. A short SEO Description. 3. Best selling price for Whop ($). Respond in simple English."
@@ -60,7 +58,13 @@ if generate_btn:
                 pdf.set_font("helvetica", "B", 16)
                 pdf.multi_cell(0, 10, "Market Research & Strategy")
                 pdf.set_font("helvetica", "", 12)
-                pdf.multi_cell(0, 8, research_data.replace("*", ""))
+                
+                # 💡 FIX 1: रिसर्च डेटा को सुरक्षित (Safe) बनाना
+                safe_research = research_data.replace("*", "").replace("#", "").encode('latin-1', 'ignore').decode('latin-1')
+                try:
+                    pdf.multi_cell(0, 8, safe_research)
+                except:
+                    pass
                 pdf.add_page()
                 time.sleep(2) 
 
@@ -97,13 +101,17 @@ if generate_btn:
                                     pdf.image(img_path, w=170)
                                     pdf.ln(5)
                                 except Exception as e:
-                                    pdf.multi_cell(0, 8, f"[Image generated but could not be added to PDF]")
+                                    pass
                         else:
+                            # 💡 FIX 2: इग्नोर कमांड ताकि इमोजी या अजीब कैरेक्टर से PDF क्रैश ना हो
                             clean_line = line.replace("*", "").replace("#", "")
-                            clean_line = clean_line.encode('latin-1', 'replace').decode('latin-1')
-                            if clean_line.strip():
-                                pdf.multi_cell(0, 8, clean_line)
-                                pdf.ln(2)
+                            clean_line = clean_line.encode('latin-1', 'ignore').decode('latin-1').strip()
+                            if clean_line:
+                                try:
+                                    pdf.multi_cell(0, 8, clean_line)
+                                    pdf.ln(2)
+                                except:
+                                    pass
                     
                     pdf.add_page()
                     time.sleep(3) 
@@ -125,4 +133,5 @@ if generate_btn:
                 )
 
         except Exception as e:
-            st.error(f"❌ API Key गड़बड़ है या कुछ समस्या आई: {e}")
+            st.error(f"❌ गड़बड़ है: {e}")
+                
