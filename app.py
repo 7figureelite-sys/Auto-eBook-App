@@ -40,7 +40,18 @@ if generate_btn:
     else:
         try:
             genai.configure(api_key=api_key)
-            model = genai.GenerativeModel('gemini-1.5-flash') 
+            
+            # 💡 स्मार्ट मॉडल डिटेक्टर: जो मॉडल चालू होगा, यह खुद उसे चुन लेगा
+            valid_models = [m.name for m in genai.list_models() if 'generateContent' in m.supported_generation_methods]
+            target_model = None
+            for pref in ['models/gemini-1.5-pro', 'models/gemini-1.5-flash', 'models/gemini-1.0-pro', 'models/gemini-pro']:
+                if pref in valid_models:
+                    target_model = pref
+                    break
+            if not target_model and valid_models:
+                target_model = valid_models[0]
+                
+            model = genai.GenerativeModel(target_model)
 
             if not os.path.exists("temp_images"):
                 os.makedirs("temp_images")
@@ -49,7 +60,7 @@ if generate_btn:
             pdf.add_page()
             pdf.set_auto_page_break(auto=True, margin=15)
 
-            with st.status("🔍 AI काम कर रहा है (इसमें 5-10 मिनट लग सकते हैं)...", expanded=True) as status:
+            with st.status(f"🔍 AI काम कर रहा है (Model: {target_model})...", expanded=True) as status:
                 
                 st.write("📊 ग्लोबल मार्केट रिसर्च और प्राइसिंग एनालाइज़ हो रही है...")
                 research_prompt = f"Act as a global market researcher. Topic: {topic}. Give me: 1. A viral, click-worthy Title. 2. A short SEO Description. 3. Best selling price for Whop ($). Respond in simple English."
@@ -123,5 +134,5 @@ if generate_btn:
                 )
 
         except Exception as e:
-            st.error(f"❌ कुछ गड़बड़ हो गई: {e}")
-              
+            st.error(f"❌ API Key गड़बड़ है या कुछ समस्या आई: {e}")
+            
